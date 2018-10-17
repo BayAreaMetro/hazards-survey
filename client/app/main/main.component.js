@@ -17,15 +17,11 @@ export class MainController {
         this.results;
         this.loading = false;
         this.$scope = $scope;
+        this.geocodeResults = [];
+        this.marker = new mapboxgl.Marker();
     }
 
     $onInit() {
-        this.$http.get('/api/things')
-            .then(response => {
-                this.awesomeThings = response.data;
-            });
-        this.geocoder = new google.maps.Geocoder();
-
 
         this.initializeMap();
 
@@ -34,480 +30,139 @@ export class MainController {
 
     initializeMap() {
         var $scope = this.$scope;
+        var geocodeResults = this.geocodeResults;
         //Create initial map object
 
 
-        var styledMapType = new google.maps.StyledMapType(
-            [{
-                    "featureType": "administrative",
-                    "elementType": "all",
-                    "stylers": [{
-                        "saturation": "-100"
-                    }]
+        mapboxgl.accessToken = 'pk.eyJ1IjoibXppeWFtYmkiLCJhIjoid3dLMWFSWSJ9.hnKFXmWmSwyhsSJp6vucig';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            // style: 'mapbox://styles/mziyambi/cjn3uhc4w07o02sp5b9dck5z6',
+            style: 'mapbox://styles/mapbox/light-v9',
+            center: [-122.424100, 37.780000],
+            zoom: 9.0
+
+        });
+
+
+
+        var geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            country: 'us',
+            bbox: [-123.497314, 36.941111, -120.709534, 38.749799]
+        });
+
+        // document.getElementById('searchAddress').appendChild(geocoder.onAdd(map));
+        document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
+
+        geocoder.on('results', function(data) {
+            // console.log(data);
+            geocodeResults.push(data);
+            console.log(geocodeResults);
+        });
+
+
+        // map.addControl(geocoder);
+
+        map.on('load', function() {
+
+
+            map.addLayer({
+                "id": "landslides",
+                "type": "fill",
+                "source": {
+                    type: 'vector',
+                    url: 'mapbox://mziyambi.dhu5tlrb'
                 },
-                {
-                    "featureType": "administrative.province",
-                    "elementType": "all",
-                    "stylers": [{
-                        "visibility": "off"
-                    }]
+                "source-layer": "parcels_in_landslide",
+                "layout": {
+
                 },
-                {
-                    "featureType": "landscape",
-                    "elementType": "all",
-                    "stylers": [{
-                            "saturation": -100
-                        },
-                        {
-                            "lightness": 65
-                        },
-                        {
-                            "visibility": "on"
-                        }
-                    ]
-                },
-                {
-                    "featureType": "poi",
-                    "elementType": "all",
-                    "stylers": [{
-                            "saturation": -100
-                        },
-                        {
-                            "lightness": "50"
-                        },
-                        {
-                            "visibility": "simplified"
-                        }
-                    ]
-                },
-                {
-                    "featureType": "road",
-                    "elementType": "all",
-                    "stylers": [{
-                        "saturation": "-100"
-                    }]
-                },
-                {
-                    "featureType": "road.highway",
-                    "elementType": "all",
-                    "stylers": [{
-                        "visibility": "simplified"
-                    }]
-                },
-                {
-                    "featureType": "road.arterial",
-                    "elementType": "all",
-                    "stylers": [{
-                        "lightness": "30"
-                    }]
-                },
-                {
-                    "featureType": "road.local",
-                    "elementType": "all",
-                    "stylers": [{
-                        "lightness": "40"
-                    }]
-                },
-                {
-                    "featureType": "transit",
-                    "elementType": "all",
-                    "stylers": [{
-                            "saturation": -100
-                        },
-                        {
-                            "visibility": "simplified"
-                        }
-                    ]
-                },
-                {
-                    "featureType": "water",
-                    "elementType": "geometry",
-                    "stylers": [{
-                            "hue": "#ffff00"
-                        },
-                        {
-                            "lightness": -25
-                        },
-                        {
-                            "saturation": -97
-                        }
-                    ]
-                },
-                {
-                    "featureType": "water",
-                    "elementType": "labels",
-                    "stylers": [{
-                            "lightness": -25
-                        },
-                        {
-                            "saturation": -100
-                        }
-                    ]
+                "paint": {
+                    "fill-color": "orange",
+                    "fill-opacity": 0.3
                 }
-            ]
-        );
+            });
 
-        var gmap = new google.maps.Map(document.getElementById('canvas'), {
-            center: new google.maps.LatLng(37.796966, -122.275051),
-            defaults: {
-                //icon: '/assets/images/GenericBlueStop16.png',
-                //shadow: 'dot_shadow.png',                    
-                editable: false,
-                strokeColor: 'red',
-                fillColor: '#2196f3',
-                fillOpacity: 0.6,
-                strokeWeight: 7
+            map.addLayer({
+                "id": "liquefaction",
+                "type": "fill",
+                "source": {
+                    type: 'vector',
+                    url: 'mapbox://mziyambi.50gtsv5l'
+                },
+                "source-layer": "parcels_in_liquefaction",
+                "layout": {
 
-            },
-            disableDefaultUI: true,
-            // mapTypeControl: true,
-            // mapTypeId: google.maps.MapTypeId.ROADMAP,
-            mapTypeControlOptions: {
-                // position: google.maps.ControlPosition.TOP_LEFT,
-                // style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-                mapTypeIds: ['roadmap', 'satellite', 'hybrid', 'terrain',
-                    'styled_map'
-                ]
-            },
+                },
+                "paint": {
+                    "fill-color": "lightgreen",
+                    "fill-opacity": 0.4
+                }
+            });
 
-            panControl: true,
-            streetViewControl: true,
-            zoom: 10,
-            zoomControl: true,
-            zoomControlOptions: {
-                position: google.maps.ControlPosition.LEFT_TOP,
-                style: google.maps.ZoomControlStyle.SMALL
-            }
+
+            map.addLayer({
+                "id": "faultzones",
+                "type": "fill",
+                "source": {
+                    type: 'vector',
+                    url: 'mapbox://mziyambi.93u23bui'
+                },
+                "source-layer": "fault_zones",
+                "layout": {
+
+                },
+                "paint": {
+                    "fill-color": "red"
+                }
+            });
         });
 
-        gmap.mapTypes.set('styled_map', styledMapType);
-        gmap.setMapTypeId('styled_map');
 
-        //Layer Toggle
-        var layerToggle = document.getElementById("layerToggleDiv");
-        gmap.controls[google.maps.ControlPosition.TOP_RIGHT].push(layerToggle);
-
-        //Add toggle layer functions for Fault zones
-        $('#faultZoneToggle').change(function() {
-            $('#faultZoneSpinner').addClass('fa-spinner fa-spin');
-            var status = ($(this).prop('checked'));
-            if (status) {
-                // console.log('add pdas');
-                var getfaultZoneLayer = function() {
-                    var faultZoneLayer = new google.maps.Data();
-                    $.getJSON("/assets/js/spatial/AlquistPriolozones.json", function(data) {
-                        // console.log(data);
-                        var geoJsonObject;
-                        geoJsonObject = topojson.feature(data, data.objects.AlquistPriolozones);
-                        faultZoneLayer.addGeoJson(geoJsonObject);
-                        faultZoneLayer.setStyle(function(feature) {
-
-                            return {
-                                fillColor: 'red',
-                                strokeWeight: 0
-
-                            };
-                        });
-                        $('#faultZoneSpinner').removeClass('fa-spinner fa-spin');
-                    });
-
-                    return faultZoneLayer;
-                };
-
-                this.faultZoneLayer = getfaultZoneLayer();
-                this.faultZoneLayer.setMap(gmap);
-            } else if (!status) {
-                // console.log('remove pdas');
-                this.faultZoneLayer.setMap(null);
-                $('#faultZoneSpinner').removeClass('fa-spinner fa-spin');
-            }
-        });
-
-        //Add toggle layer functions for Landslide
-        $('#landslideToggle').change(function() {
-            $('#landslideSpinner').addClass('fa-spinner fa-spin');
-            var status = ($(this).prop('checked'));
-            if (status) {
-                // console.log('add pdas');
-                var getlandslideLayer = function() {
-                    var landslideLayer = new google.maps.Data();
-                    $.getJSON("/assets/js/spatial/parcels_in_hazards/parcels_in_landslide.json", function(data) {
-                        // console.log(data);
-                        var geoJsonObject;
-                        geoJsonObject = topojson.feature(data, data.objects.parcels_in_landslide);
-                        landslideLayer.addGeoJson(geoJsonObject);
-                        landslideLayer.setStyle(function(feature) {
-
-                            return {
-                                fillColor: 'yellow',
-                                strokeWeight: 0
-
-                            };
-                        });
-                        $('#landslideSpinner').removeClass('fa-spinner fa-spin');
-                    });
-
-                    return landslideLayer;
-                };
-
-                this.landslideLayer = getlandslideLayer();
-                this.landslideLayer.setMap(gmap);
-            } else if (!status) {
-                // console.log('remove pdas');
-                this.landslideLayer.setMap(null);
-                $('#landslideSpinner').removeClass('fa-spinner fa-spin');
-            }
-        });
-
-        //Add toggle layer functions for Liquefaction
-        $('#liquefactionToggle').change(function() {
-            $('#liquefactionSpinner').addClass('fa-spinner fa-spin');
-            var status = ($(this).prop('checked'));
-            if (status) {
-                // console.log('add pdas');
-                var getliquefactionLayer = function() {
-                    var liquefactionLayer = new google.maps.Data();
-                    $.getJSON("/assets/js/spatial/parcels_in_hazards/parcels_in_liquefaction.json", function(data) {
-                        // console.log(data);
-                        var geoJsonObject;
-                        geoJsonObject = topojson.feature(data, data.objects.parcels_in_liquefaction);
-                        liquefactionLayer.addGeoJson(geoJsonObject);
-                        liquefactionLayer.setStyle(function(feature) {
-
-                            return {
-                                fillColor: 'green',
-                                strokeWeight: 0
-
-                            };
-                        });
-                        $('#liquefactionSpinner').removeClass('fa-spinner fa-spin');
-                    });
-
-                    return liquefactionLayer;
-                };
-
-                this.liquefactionLayer = getliquefactionLayer();
-                this.liquefactionLayer.setMap(gmap);
-            } else if (!status) {
-                // console.log('remove pdas');
-                this.liquefactionLayer.setMap(null);
-                $('#liquefactionSpinner').removeClass('fa-spinner fa-spin');
-            }
-        });
-
-        //Add toggle layer functions for TPAs
-        // $('#tpaToggle').change(function() {
-        //     $('#tpaSpinner').addClass('fa-spinner fa-spin');
-        //     var status = ($(this).prop('checked'));
-        //     if (status) {
-        //         // console.log('add pdas');
-        //         var getPDALayer = function() {
-        //             var pdaLayer = new google.maps.Data();
-        //             $.getJSON("/assets/js/tpas_dissolved.json", function(data) {
-        //                 // console.log(data);
-        //                 var geoJsonObject;
-        //                 geoJsonObject = topojson.feature(data, data.objects.tpas_dissolved);
-        //                 pdaLayer.addGeoJson(geoJsonObject);
-        //                 pdaLayer.setStyle(function(feature) {
-
-        //                     return {
-        //                         fillColor: 'purple',
-        //                         strokeColor: 'purple',
-        //                         fillOpacity: 0.1,
-        //                         strokeWeight: 1,
-        //                         strokeOpacity: 0.6,
-
-        //                     };
-        //                 });
-
-        //             });
-        //             $('#tpaSpinner').removeClass('fa-spinner fa-spin');
-        //             return pdaLayer;
-        //         };
-
-        //         this.pdaLayer = getPDALayer();
-        //         this.pdaLayer.setMap(gmap);
-        //     } else if (!status) {
-        //         // console.log('remove pdas');
-        //         this.pdaLayer.setMap(null);
-        //         $('#tpaSpinner').removeClass('fa-spinner fa-spin');
-        //     }
-        // });
-
-        //Add toggle layer functions for COCs
-        // $('#cocToggle').change(function() {
-        //     $('#cocSpinner').addClass('fa-spinner fa-spin');
-        //     var status = ($(this).prop('checked'));
-        //     if (status) {
-        //         // console.log('add pdas');
-        //         var getPDALayer = function() {
-        //             var pdaLayer = new google.maps.Data();
-        //             $.getJSON("/assets/js/cocs_dissolved.json", function(data) {
-        //                 // console.log(data);
-        //                 var geoJsonObject;
-        //                 geoJsonObject = topojson.feature(data, data.objects.cocs_dissolved);
-        //                 pdaLayer.addGeoJson(geoJsonObject);
-        //                 pdaLayer.setStyle(function(feature) {
-
-        //                     return {
-        //                         fillColor: 'pink',
-        //                         strokeColor: 'pink',
-        //                         fillOpacity: 0.2,
-        //                         strokeWeight: 1,
-        //                         strokeOpacity: 0.9
-        //                     };
-        //                 });
-
-        //             });
-        //             $('#cocSpinner').removeClass('fa-spinner fa-spin');
-        //             return pdaLayer;
-        //         };
-
-        //         this.pdaLayer = getPDALayer();
-        //         this.pdaLayer.setMap(gmap);
-        //         // $('#cocSpinner').removeClass('fa-spinner fa-spin');
-        //     } else if (!status) {
-        //         // console.log('remove pdas');
-        //         this.pdaLayer.setMap(null);
-        //         $('#cocSpinner').removeClass('fa-spinner fa-spin');
-        //     }
-        // });
-
-        //End Layer Toggle
-
-        // GOOGLE AUTOCOMPLETE
-        // Autocomplete directions
-        var searchAddress = document.getElementById('searchAddress');
-        var marker1;
-
-        var autocomplete = new google.maps.places.Autocomplete(searchAddress);
-
-        autocomplete.bindTo('bounds', gmap);
-
-        //From Address Autocomplete
-        autocomplete.addListener('place_changed', function() {
-            // infowindow.close();
-            // marker1 = new google.maps.Marker({
-            //     map: gmap,
-            //     anchorPoint: new google.maps.Point(0, -29)
-            // });
-            // marker1.setVisible(false);
-
-            var place = autocomplete.getPlace();
-            // if (!place.geometry) {
-            //     // User entered the name of a Place that was not suggested and
-            //     // pressed the Enter key, or the Place Details request failed.
-            //     window.alert("No details available for input: '" + place.name + "'");
-            //     return;
-            // }
-
-            // // If the place has a geometry, then present it on a map.
-            // if (place.geometry.viewport) {
-            //     gmap.fitBounds(place.geometry.viewport);
-            // } else {
-            //     gmap.setCenter(place.geometry.location);
-            //     gmap.setZoom(17); // Why 17? Because it looks good.
-            // }
-            // marker1.setPosition(place.geometry.location);
-            // marker1.setVisible(true);
-
-            var address = '';
-            if (place.address_components) {
-                address = [
-                    (place.address_components[0] && place.address_components[0].short_name || ''),
-                    (place.address_components[1] && place.address_components[1].short_name || ''),
-                    (place.address_components[2] && place.address_components[2].short_name || '')
-                ].join(' ');
-            }
-
-            // infowindowContent.children['place-icon'].src = place.icon;
-            // infowindowContent.children['place-name'].textContent = place.name;
-            // infowindowContent.children['place-address'].textContent = address;
-            console.log(address);
-            $scope.address = address;
-
-            // infowindow.open(map, marker);
-        });
-
-        // this.gmap = gmap;
-        var lzsGeojson, liqsGeojson, liqzGeojson, apzGeojson;
-        var apzLayer = new google.maps.Data({ map: gmap });
-        var lszLayer = new google.maps.Data({ map: gmap });
-        var liqsLayer = new google.maps.Data({ map: gmap });
-        var liqzLayer = new google.maps.Data({ map: gmap });
+        this.map = map;
 
 
-        // $.getJSON("/assets/js/spatial/parcels_in_hazards/parcels_in_liquefaction.json", function(data) {
-        //     console.log(data);
-        //     liqzGeojson = topojson.feature(data, data.objects.parcels_in_liquefaction);
-        //     liqzLayer.addGeoJson(liqzGeojson);
-        //     liqzLayer.setStyle({
-        //         fillColor: 'green',
-        //         strokeWeight: 0
-        //     });
-
-
-        // });
-
-
-
-        // $.getJSON("/assets/js/spatial/LandslideZones.json", function(data) {
-        //     console.log(data);
-        //     lzsGeojson = topojson.feature(data, data.objects.LandslideZones);
-        //     lszLayer.addGeoJson(lzsGeojson);
-        //     lszLayer.setStyle({
-        //         fillColor: 'blue',
-        //         strokeWeight: 0
-        //     });
-
-
-        // });
-
-
-
-        // $.getJSON("/assets/js/spatial/parcels_in_hazards/parcels_in_landslide.json", function(data) {
-        //     console.log(data);
-        //     liqsGeojson = topojson.feature(data, data.objects.parcels_in_landslide);
-        //     liqsLayer.addGeoJson(liqsGeojson);
-        //     liqsLayer.setStyle({
-        //         fillColor: 'yellow',
-        //         strokeWeight: 0
-        //     });
-
-
-        // });
-
-        // $.getJSON("/assets/js/spatial/AlquistPriolozones.json", function(data) {
-        //     console.log(data);
-        //     apzGeojson = topojson.feature(data, data.objects.AlquistPriolozones);
-        //     apzLayer.addGeoJson(apzGeojson);
-        //     apzLayer.setStyle({
-        //         fillColor: 'red',
-        //         strokeWeight: 0
-        //     });
-
-
-        // });
-
-        this.gmap = gmap;
-
-        // $.getJSON("/assets/js/spatial/LandslideZones.json", function(data) {
-        //     console.log(data);
-        //     geoJsonObject = topojson.feature(data, data.objects.LandslideZones)
-        //     gmap.data.addGeoJson(geoJsonObject);
-        //     gmap.data.setStyle({
-        //         fillColor: 'purple',
-        //         strokeWeight: 0
-        //     });
-        // });
 
     }
 
     getResults() {
         this.$scope.loading = true;
-        var address = this.address;
-        this.results = this.codeAddress(address);
-        console.log(this.results);
+        var geocodeResult = (_.last(this.geocodeResults));
+        var center = geocodeResult.features[0].center;
+        this.$scope.inputAddress = geocodeResult.features[0].place_name;
+        console.log(geocodeResult);
+        // console.log(this.map);
+        this.marker.remove();
+        this.marker.setLngLat(center)
+            .addTo(this.map);
+
+        var latLng = {
+            lat: center[1],
+            lng: center[0]
+        };
+
+        this.$http.post('api/data/getResults', latLng)
+            .then(result => {
+                console.log(result);
+                this.$scope.results = result;
+                this.$scope.landslide = result.data.recordset[0].landslide;
+                this.$scope.faultzone = result.data.recordset[0].faultzone;
+                this.$scope.liquefaction = result.data.recordset[0].liquefaction;
+
+                console.log(this.$scope);
+                this.$scope.loading = false;
+
+
+            })
+            .catch(err => {
+                console.log(err);
+                this.$scope.loading = false;
+            });
+
+        // var address = this.address;
+        // this.results = this.codeAddress(address);
+        // console.log(this.results);
     }
     codeAddress(address) {
         // address = document.getElementById('searchAddress').value;
